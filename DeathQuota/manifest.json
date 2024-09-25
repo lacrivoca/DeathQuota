@@ -1,7 +1,7 @@
 {
   "name": "DeathQuota",
   "version_number": "1.0.0",
-  "website_url": "https://github.com/MaxWasUnavailable/MoonOfTheDay",
+  "website_url": "https://github.com/lacrivoca/DeathQuota",
   "description": "Replaces the fine mechanic with a quota increase.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100",

@@ -47,26 +47,30 @@ namespace DeathQuota
         private static void HUDManager_ApplyPenalty(On.HUDManager.orig_ApplyPenalty orig, HUDManager self, int playersDead, int bodiesInsured)
         {
             float num = 0.2f;
-            Terminal terminal = FindAnyObjectByType<Terminal>();
-            int creditCount = terminal.groupCredits;
             int currentQuota = TimeOfDay.Instance.profitQuota;
             bodiesInsured = Mathf.Max(bodiesInsured, 0);
-            for (int i = 0; i < playersDead - bodiesInsured; i++)
+            if (bodiesInsured == playersDead)
             {
-                currentQuota += (int)((float)currentQuota * num);
+                Logger.LogDebug("DeathQuota: All bodies collected.");
+                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\n(All bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
+                self.statsUIElements.penaltyTotal.text = string.Format("PROFIT MARGINS DEEMED ACCEPTABLE. QUOTA UNCHANGED.");
+                TimeOfDay.Instance.profitQuota = currentQuota;
             }
-            for (int j = 0; j < bodiesInsured; j++)
+            else
             {
-                currentQuota += (int)((float)currentQuota * (num / 2.5f));
+
+                for (int i = 0; i < playersDead - bodiesInsured; i++)
+                {
+                    currentQuota += (int)((float)currentQuota * num);
+                }
+                for (int j = 0; j < bodiesInsured; j++)
+                {
+                    currentQuota += (int)((float)currentQuota * (num / 2.5f));
+                }
+                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\n({2} bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
+                self.statsUIElements.penaltyTotal.text = string.Format("QUOTA INCREASED TO: ${0}", currentQuota);
+                TimeOfDay.Instance.profitQuota = currentQuota;
             }
-            if (terminal.groupCredits < 0)
-            {
-                terminal.groupCredits = 0;
-            }
-            self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\n({2} bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
-            self.statsUIElements.penaltyTotal.text = string.Format("QUOTA INCREASED TO: ${0}", currentQuota);
-            Debug.Log(string.Format("New group credits after penalty: {0}", terminal.groupCredits));
-            TimeOfDay.Instance.profitQuota = currentQuota;
         }
     }
 }
