@@ -78,7 +78,7 @@ namespace DeathQuota
             }
             else
             {
-                orig(self, playersDead, bodiesInsured);
+                VanillaAddition(orig, self, playersDead, bodiesInsured);
             }
         }
 
@@ -90,7 +90,7 @@ namespace DeathQuota
             if (bodiesInsured == playersDead)
             {
                 Logger.LogDebug("DeathQuota: All bodies collected.");
-                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\nAll bodies recovered", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
+                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: +0%\nAll bodies recovered", playersDead);
                 self.statsUIElements.penaltyTotal.text = string.Format("Quota Unchanged");
                 TimeOfDay.Instance.profitQuota = currentQuota;
             }
@@ -105,8 +105,8 @@ namespace DeathQuota
                 {
                     currentQuota += (int)((float)currentQuota * (num / 2.5f));
                 }
-                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\n({2} bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
-                self.statsUIElements.penaltyTotal.text = string.Format("QUOTA INCREASED TO: ${0}", currentQuota);
+                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: +{1}%\n({2} bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
+                self.statsUIElements.penaltyTotal.text = string.Format("Quota Increased To: ${0}", currentQuota);
                 TimeOfDay.Instance.profitQuota = currentQuota;
             }
         }
@@ -135,7 +135,7 @@ namespace DeathQuota
                     currentQuota += (int)(Config.BodyCost * num);
                 }
                 self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\n({2} bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
-                self.statsUIElements.penaltyTotal.text = string.Format("QUOTA INCREASED TO: ${0}", currentQuota);
+                self.statsUIElements.penaltyTotal.text = string.Format("Quota Increased To: ${0}", currentQuota);
                 TimeOfDay.Instance.profitQuota = currentQuota;
             }
         }
