@@ -5,21 +5,26 @@ using LobbyCompatibility.Enums;
 using System.Reflection;
 using UnityEngine;
 using Unity.Netcode;
+using LobbyCompatibility.Configuration;
 
 namespace DeathQuota
 {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
     [BepInDependency("BMX.LobbyCompatibility", BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency("com.sigurd.csync", "5.0.1")]
     [LobbyCompatibility(CompatibilityLevel.Everyone, VersionStrictness.None)]
     public class DeathQuota : BaseUnityPlugin
     {
         public static DeathQuota Instance { get; private set; } = null!;
         internal new static ManualLogSource Logger { get; private set; } = null!;
 
+        internal static new ConfigMain Config;
+
         private void Awake()
         {
             Logger = base.Logger;
             Instance = this;
+            Config = new ConfigMain(base.Config);
 
             Hook();
 
@@ -42,9 +47,42 @@ namespace DeathQuota
         internal static void Hook()
         {
             On.HUDManager.ApplyPenalty += HUDManager_ApplyPenalty;
+            On.TimeOfDay.SetNewProfitQuota += TimeOfDay_SetNewProfitQuota;
+        }
+
+        private static void TimeOfDay_SetNewProfitQuota(On.TimeOfDay.orig_SetNewProfitQuota orig, TimeOfDay self)
+        {
+            if (!Config.ReplaceVanilla)
+            {
+                orig(self);
+            }
+            if (self.IsHost) 
+            {
+                self.timesFulfilledQuota++;
+                int num = self.quotaFulfilled - self.profitQuota;
+                self.timeUntilDeadline = self.totalTime * 4f;
+                int overtime = num / 5 + 15 * self.daysUntilDeadline;
+                self.SyncNewProfitQuotaClientRpc(self.profitQuota, overtime, self.timesFulfilledQuota);
+            }
+            else
+            {
+                return;
+            }
         }
 
         private static void HUDManager_ApplyPenalty(On.HUDManager.orig_ApplyPenalty orig, HUDManager self, int playersDead, int bodiesInsured)
+        {
+            if (Config.ReplaceVanilla)
+            {
+                VanillaReplacement(orig, self, playersDead, bodiesInsured);
+            }
+            else
+            {
+                orig(self, playersDead, bodiesInsured);
+            }
+        }
+
+        private static void VanillaReplacement(On.HUDManager.orig_ApplyPenalty orig, HUDManager self, int playersDead, int bodiesInsured)
         {
             float num = 0.2f;
             int currentQuota = TimeOfDay.Instance.profitQuota;
@@ -52,8 +90,8 @@ namespace DeathQuota
             if (bodiesInsured == playersDead)
             {
                 Logger.LogDebug("DeathQuota: All bodies collected.");
-                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\n(All bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
-                self.statsUIElements.penaltyTotal.text = string.Format("PROFIT MARGINS DEEMED ACCEPTABLE. QUOTA UNCHANGED.");
+                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\nAll bodies recovered", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
+                self.statsUIElements.penaltyTotal.text = string.Format("Quota Unchanged");
                 TimeOfDay.Instance.profitQuota = currentQuota;
             }
             else
@@ -66,6 +104,35 @@ namespace DeathQuota
                 for (int j = 0; j < bodiesInsured; j++)
                 {
                     currentQuota += (int)((float)currentQuota * (num / 2.5f));
+                }
+                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\n({2} bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
+                self.statsUIElements.penaltyTotal.text = string.Format("QUOTA INCREASED TO: ${0}", currentQuota);
+                TimeOfDay.Instance.profitQuota = currentQuota;
+            }
+        }
+
+        private static void VanillaAddition(On.HUDManager.orig_ApplyPenalty orig, HUDManager self, int playersDead, int bodiesInsured)
+        {
+            float num = 0.2f;
+            int currentQuota = TimeOfDay.Instance.profitQuota;
+            bodiesInsured = Mathf.Max(bodiesInsured, 0);
+            if (bodiesInsured == playersDead)
+            {
+                Logger.LogDebug("DeathQuota: All bodies collected.");
+                self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\nAll bodies recovered", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
+                self.statsUIElements.penaltyTotal.text = string.Format("Quota Unchanged");
+                TimeOfDay.Instance.profitQuota = currentQuota;
+            }
+            else
+            {
+
+                for (int i = 0; i < playersDead - bodiesInsured; i++)
+                {
+                    currentQuota += Config.BodyCost;
+                }
+                for (int j = 0; j < bodiesInsured; j++)
+                {
+                    currentQuota += (int)(Config.BodyCost * num);
                 }
                 self.statsUIElements.penaltyAddition.text = string.Format("{0} casualties: -{1}%\n({2} bodies recovered)", playersDead, num * 100f * (float)(playersDead - bodiesInsured), bodiesInsured);
                 self.statsUIElements.penaltyTotal.text = string.Format("QUOTA INCREASED TO: ${0}", currentQuota);

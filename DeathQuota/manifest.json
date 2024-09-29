@@ -1,11 +1,12 @@
 {
   "name": "DeathQuota",
-  "version_number": "1.0.1",
+  "version_number": "1.1.0",
   "website_url": "https://github.com/lacrivoca/DeathQuota",
   "description": "Replaces the fine mechanic with a quota increase.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100",
     "BMX-LobbyCompatibility-1.2.0",
-    "Hamunii-AutoHookGenPatcher-1.0.4"
+    "Hamunii-AutoHookGenPatcher-1.0.4",
+    "Sigurd-CSync-5.0.1"
   ]
 }
